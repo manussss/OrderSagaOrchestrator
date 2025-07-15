@@ -1,13 +1,12 @@
+using SagaOrchestrator.Common.Contracts;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,29 +15,23 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+//TODO save to database
+var reserved = new List<Guid>();
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/stock", (ReserveStock cmd) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+    // Fake failure for demo purposes
+    if (Random.Shared.Next(1, 6) == 3)
+        return Results.BadRequest(new Failure(cmd.OrderId, "No stock"));
 
-app.Run();
+    reserved.Add(cmd.OrderId);
+    return Results.Ok(new Success(cmd.OrderId));
+});
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+app.MapPost("/stock/compensate", (Guid orderId) =>
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+    reserved.Remove(orderId);
+    return Results.Ok();
+});
+
+await app.RunAsync();

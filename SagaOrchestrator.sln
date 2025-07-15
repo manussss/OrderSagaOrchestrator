@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SagaOrchestrator.OrderAPI",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SagaOrchestrator.InventoryAPI", "SagaOrchestrator.InventoryAPI\SagaOrchestrator.InventoryAPI.csproj", "{EB0D07E8-67AF-42E9-A061-5E33D30E5801}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SagaOrchestrator.PaymentAPI", "SagaOrchestrator.PaymentAPI\SagaOrchestrator.PaymentAPI.csproj", "{425610AE-B17C-42A5-B55F-BB3098AB857C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{EB0D07E8-67AF-42E9-A061-5E33D30E5801}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB0D07E8-67AF-42E9-A061-5E33D30E5801}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB0D07E8-67AF-42E9-A061-5E33D30E5801}.Release|Any CPU.Build.0 = Release|Any CPU
+		{425610AE-B17C-42A5-B55F-BB3098AB857C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{425610AE-B17C-42A5-B55F-BB3098AB857C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{425610AE-B17C-42A5-B55F-BB3098AB857C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{425610AE-B17C-42A5-B55F-BB3098AB857C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

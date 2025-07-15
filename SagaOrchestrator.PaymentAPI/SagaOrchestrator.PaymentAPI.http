@@ -1,0 +1,6 @@
+@SagaOrchestrator.PaymentAPI_HostAddress = http://localhost:5099
+
+GET {{SagaOrchestrator.PaymentAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

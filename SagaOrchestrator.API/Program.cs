@@ -1,13 +1,19 @@
+using System.Net;
+using SagaOrchestrator.API.Models;
+using SagaOrchestrator.Common.Contracts;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<OrderSaga>();
+builder.Services.AddHttpClient("order",  c => c.BaseAddress = new("http://localhost:7001"));
+builder.Services.AddHttpClient("stock",  c => c.BaseAddress = new("http://localhost:7002"));
+builder.Services.AddHttpClient("pay",    c => c.BaseAddress = new("http://localhost:7003"));
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,29 +22,60 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapPost("/checkout", async (OrderRequest req, OrderSaga saga) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    var result = await saga.ExecuteAsync(req);
 
-app.MapGet("/weatherforecast", () =>
+    return result.IsSuccess ?
+        Results.Ok("🎉 Order completed") :
+        Results.Problem(result.Error);
+});
+
+await app.RunAsync();
+
+public class OrderSaga
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+    private readonly IHttpClientFactory _factory;
+    public OrderSaga(IHttpClientFactory factory) => _factory = factory;
 
-app.Run();
+    public async Task<Result> ExecuteAsync(OrderRequest req)
+    {
+        var orderId = Guid.NewGuid();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        if (!await Send("order", "/orders", new CreateOrder(orderId, req.Amount))) 
+            return Failure("Order service failed");
+
+        if (!await Send("stock", "/stock", new ReserveStock(orderId)))
+        {
+            await Compensate("order", "/orders/compensate", orderId);
+            return Failure("Inventory reservation failed");
+        }
+
+        if (!await Send("pay", "/payment", new CapturePayment(orderId, req.Amount)))
+        {
+            await Compensate("stock", "/stock/compensate",  orderId);
+            await Compensate("order", "/orders/compensate", orderId);
+            return Failure("Payment failed");
+        }
+
+        return Success();
+    }
+
+    private static Result Success() => new(true, null);
+    private static Result Failure(string reason) => new(false, reason);
+
+    private async Task<bool> Send<T>(string client, string uri, T body)
+    {
+        var http  = _factory.CreateClient(client);
+        var resp  = await http.PostAsJsonAsync(uri, body);
+        return resp.StatusCode == HttpStatusCode.OK;
+    }
+
+    private async Task Compensate(string client, string uri, Guid orderId)
+    {
+        var http = _factory.CreateClient(client);
+        _ = await http.PostAsJsonAsync(uri, orderId);
+    }
 }
+
+public readonly record struct Result(bool IsSuccess, string? Error);

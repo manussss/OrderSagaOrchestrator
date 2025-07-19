@@ -30,4 +30,4 @@ app.MapPost("/payment/refund", (Guid orderId) =>
     return Results.Ok();
 });
 
-await app.RunAsync();
+await app.RunAsync("http://localhost:7003");
